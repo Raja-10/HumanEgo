@@ -1,0 +1,73 @@
+# =============================================================================
+# HumanEgo Robosuite Inference Configuration
+# =============================================================================
+
+policy:
+  ckpt: "/home/cobot/Desktop/Raja/Projects/HumanEgo/checkpoints/serve_bread/latest.pt"
+  num_inference_steps: 20
+
+control:
+  control_hz: 10.0
+  exec_horizon: 8
+  done_threshold: 0.80
+  alpha_pos: 0.50
+  alpha_rot: 0.50
+  max_pos_step: 0.05
+  grasp_threshold: 0.50
+  safe_z_min: -0.12
+
+perception:
+  anchor_key: obj1
+  n_init_frames: 5
+
+  # MuJoCo body names. obj1 is the anchor (defines the object-centric
+  # reference frame) and MUST match training: cfg/preprocess/tasks/
+  # serve_bread.yaml's DINOSAM prompts + every training_data.json's
+  # metadata.anchor_key both confirm obj1 = "piece of bread" (the object
+  # that gets grasped, not the stationary plate) — verified directly from
+  # the training recordings: hand-to-obj1 distance shrinks from ~0.19m to
+  # ~0.03m exactly when the grasp label turns on.
+  object_names:
+    obj1: croissant_main
+    obj2: plate_main
+
+  # Renders the virtual gripper + object keypoints onto the arm-hidden
+  # background, matching the training-time image convention (see
+  # preprocess/VisualKpts.py).
+  visualkpts_cfg_path: "/home/cobot/Desktop/Raja/Projects/HumanEgo/cfg/preprocess/base/VisualKpts.yaml"
+
+camera:
+  camera_name: agentview
+  # 3:2 aspect (matches the real Aria camera's 1920x1280, k in training_data.json),
+  # at far fewer pixels since sim doesn't need Aria's native resolution.
+  w: 480
+  h: 320
+  # Overrides robosuite's default agentview fovy (45 deg -> HFOV 57.9/VFOV 45,
+  # much narrower than real). Matches the real camera's vertical FOV: real
+  # k = [[960,0,960.5],[0,960,639.5],[0,0,1]] @ 1920x1280 ->
+  # vfov = 2*atan((h/2)/fy) = 2*atan(640/960) = 67.38 deg. Combined with the 3:2
+  # aspect above, this reproduces real's HFOV (90 deg) too, since
+  # hfov = 2*atan(aspect * tan(vfov/2)) = 2*atan(1.5 * tan(33.69 deg)) = 90 deg.
+  fovy_deg: 67.38
+
+simulation:
+  env_name: ServeBread
+  robot: Panda
+
+robot:
+  sides: ["right"]
+
+  # This checkpoint is Aria-MPS-trained ("hand_tracking_method": "aria_mps" in
+  # runs/.../config.json), so it needs the Aria-hand -> EE bridge, NOT
+  # identity (identity is only correct for a checkpoint trained on
+  # teleop/robot data in the same EE convention already). Copied from the
+  # real-hardware reference cfg/inference/example_dualarm.yaml, whose own
+  # comment says exactly what we were seeing: "Get this wrong and rotations
+  # will be systematically off." Empirically confirmed: with identity, the
+  # predicted grasp approach-axis was ~162-166 degrees from straight-down
+  # (i.e. nearly upside-down) despite position being accurate to a few cm.
+  T_align:
+    - [-1.0,  0.0,  0.0,  0.0]
+    - [ 0.0,  0.0,  1.0,  0.0]
+    - [ 0.0,  1.0,  0.0,  0.0]
+    - [ 0.0,  0.0,  0.0,  1.0]

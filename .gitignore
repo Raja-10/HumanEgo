@@ -1,0 +1,16 @@
+# Large local-only data/artifacts -- not meant for git
+/data/
+/checkpoints/
+/runs/
+preprocess/aria_devignetting_masks/
+
+# Python
+__pycache__/
+*.pyc
+
+# Debug/scratch outputs from ad-hoc comparison runs
+inference_sim/tools/_compare_out/
+
+# Stray local debug images
+/depth.png
+/rgb.png

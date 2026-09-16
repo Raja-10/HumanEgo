@@ -1,0 +1,8 @@
+
+type: "robosuite"
+env_name: "ServeBread"          # (SET) robosuite environment name
+fps: 30
+# w_raw: 1280        # native sensor capture resolution
+# h_raw: 720
+w: 640             # (SET) target resolution after crop/resize — match your training image source
+h: 480
